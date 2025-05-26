@@ -1,0 +1,17 @@
+streamlit
+python-dotenv
+requests
+playwright
+beautifulsoup4
+lxml
+PyGithub
+faiss-cpu
+sentence-transformers
+pandas
+numpy
+cohere
+langchain
+langchain-community
+tldextract
+langchain-cohere
+pymongo
