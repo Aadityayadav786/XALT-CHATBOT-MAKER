@@ -1,3 +1,7 @@
+from dotenv import load_dotenv
+load_dotenv()
+
+
 import requests
 import os
 import subprocess
@@ -70,18 +74,27 @@ def commit_and_push_changes(repo_url: str, repo_name="xalt-chatbot-repo"):
         f.write(".env\n")
 
     try:
+        # Initialize Git
         run_cmd(["git", "init"], "Initialized Git repo")
         run_cmd(["git", "config", "user.name", "Aaditya Yadav"])
         run_cmd(["git", "config", "user.email", "aaditya@example.com"])
         run_cmd(["git", "checkout", "-b", "main"], "Created 'main' branch")
-        run_cmd(["git", "remote", "add", "origin", repo_url], "Set remote origin")
 
+        # Embed token in URL for git push
+        token = os.getenv("GITHUB_TOKEN")
+        if not token:
+            raise ValueError("GITHUB_TOKEN not found in environment")
+        repo_url_with_token = repo_url.replace("https://", f"https://{token}@")
+
+        run_cmd(["git", "remote", "add", "origin", repo_url_with_token], "Set remote origin with token")
+
+        # Stage and commit
         run_cmd(["git", "add", "."], "Staged files for commit")
         subprocess.run(["git", "rm", "--cached", ".env"], stderr=subprocess.DEVNULL)
-
         run_cmd(["git", "commit", "-m", "Initial commit"], "Committed all files")
-        run_cmd(["git", "push", "-u", "origin", "main"], "Pushed to GitHub")
 
+        # Push
+        run_cmd(["git", "push", "-u", "origin", "main"], "Pushed to GitHub")
         print("[🚀] Repo deployed to GitHub successfully")
 
     except subprocess.CalledProcessError as e:
