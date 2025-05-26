@@ -13,10 +13,12 @@ from rag_pipeline import get_rag_response
 from agents.deployment_agent import DeploymentAgent
 from utils.load_env import load_env_file
 from render_deploy import deploy_to_render  # ✅ NEW: Render deployment logic
-
+from dotenv import load_dotenv
+load_dotenv()
 # --- Load Environment Variables ---
 env_vars = load_env_file()
 RENDER_API_KEY = env_vars.get("RENDER_API_KEY")
+COHERE_API_KEY = env_vars.get("COHERE_API_KEY")
 
 # --- Session Initialization ---
 init_user_session()
