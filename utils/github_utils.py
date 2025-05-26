@@ -1,5 +1,3 @@
-# utils/github_utils.py
-
 import requests
 import os
 import subprocess
@@ -28,12 +26,24 @@ def create_github_repo(repo_name):
         print("[✅] GitHub repo created successfully")
         return f"https://github.com/{username}/{repo_name}.git"
     else:
-        raise Exception(f"GitHub repo creation failed: {response.json()}")
+        raise Exception(f"[❌] GitHub repo creation failed: {response.status_code} {response.json()}")
+
+
+def run_cmd(cmd, msg=None):
+    print(f"[🛠️] Running: {' '.join(cmd)}")
+    result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+    if msg:
+        print(f"[✅] {msg}")
+    return result.stdout
 
 
 def commit_and_push_changes(repo_url: str, repo_name="xalt-chatbot-repo"):
-    if not os.path.exists(repo_name):
-        os.makedirs(repo_name)
+    print(f"[📁] Preparing GitHub repo folder: {repo_name}")
+
+    # Clean or create target repo directory
+    if os.path.exists(repo_name):
+        shutil.rmtree(repo_name)
+    os.makedirs(repo_name)
 
     files_to_include = [
         "frontend.py", "requirements.txt", ".env", "rag_pipeline.py", "vector_database.py",
@@ -49,10 +59,8 @@ def commit_and_push_changes(repo_url: str, repo_name="xalt-chatbot-repo"):
     # Copy folders
     for d in folders_to_include:
         if os.path.exists(d):
-            if os.path.isdir(d):
-                shutil.copytree(d, os.path.join(repo_name, d), dirs_exist_ok=True)
-            else:
-                shutil.copy(d, os.path.join(repo_name, d))
+            dst_path = os.path.join(repo_name, d)
+            shutil.copytree(d, dst_path, dirs_exist_ok=True)
 
     # Move into the repo directory
     os.chdir(repo_name)
@@ -61,29 +69,22 @@ def commit_and_push_changes(repo_url: str, repo_name="xalt-chatbot-repo"):
     with open(".gitignore", "w") as f:
         f.write(".env\n")
 
-    # Initialize Git and set user identity locally
-    subprocess.run(["git", "init"])
-    subprocess.run(["git", "config", "user.name", "Aaditya Yadav"])  # Replace as needed
-    subprocess.run(["git", "config", "user.email", "aaditya@example.com"])  # Replace as needed
+    try:
+        run_cmd(["git", "init"], "Initialized Git repo")
+        run_cmd(["git", "config", "user.name", "Aaditya Yadav"])
+        run_cmd(["git", "config", "user.email", "aaditya@example.com"])
+        run_cmd(["git", "checkout", "-b", "main"], "Created 'main' branch")
+        run_cmd(["git", "remote", "add", "origin", repo_url], "Set remote origin")
 
-    # Set branch and remote
-    subprocess.run(["git", "checkout", "-b", "main"])
-    subprocess.run(["git", "remote", "add", "origin", repo_url])
+        run_cmd(["git", "add", "."], "Staged files for commit")
+        subprocess.run(["git", "rm", "--cached", ".env"], stderr=subprocess.DEVNULL)
 
-    # Add and commit files
-    subprocess.run(["git", "add", "."])
-    subprocess.run(["git", "rm", "--cached", ".env"], stderr=subprocess.DEVNULL)
+        run_cmd(["git", "commit", "-m", "Initial commit"], "Committed all files")
+        run_cmd(["git", "push", "-u", "origin", "main"], "Pushed to GitHub")
 
-    # Commit
-    commit_result = subprocess.run(["git", "commit", "-m", "Initial commit"], capture_output=True, text=True)
+        print("[🚀] Repo deployed to GitHub successfully")
 
-    if commit_result.returncode != 0:
-        print(f"[❌] Git commit failed:\n{commit_result.stderr}")
-        return
-
-    # Push
-    push_result = subprocess.run(["git", "push", "-u", "origin", "main"], capture_output=True, text=True)
-    if push_result.returncode != 0:
-        print(f"[❌] Git push failed:\n{push_result.stderr}")
-    else:
-        print("[✅] Code pushed to GitHub without .env file")
+    except subprocess.CalledProcessError as e:
+        print(f"[❌] Command failed: {e.cmd}")
+        print(f"[❌] Error Output:\n{e.stderr}")
+        raise
