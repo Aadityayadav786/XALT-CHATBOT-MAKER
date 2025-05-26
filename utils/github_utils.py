@@ -35,7 +35,6 @@ def commit_and_push_changes(repo_url: str, repo_name="xalt-chatbot-repo"):
     if not os.path.exists(repo_name):
         os.makedirs(repo_name)
 
-    # Files and folders to copy
     files_to_include = [
         "frontend.py", "requirements.txt", ".env", "rag_pipeline.py", "vector_database.py",
         "README.md", "deploy_streamlit_to_railway.py", "Dockerfile", "Procfile", "__init__.py"
@@ -62,20 +61,29 @@ def commit_and_push_changes(repo_url: str, repo_name="xalt-chatbot-repo"):
     with open(".gitignore", "w") as f:
         f.write(".env\n")
 
-    # Initialize Git and set user identity
+    # Initialize Git and set user identity locally
     subprocess.run(["git", "init"])
-    subprocess.run(["git", "config", "user.name", "Aadityayadav786"])
-    subprocess.run(["git", "config", "user.email", "aady10748@gmail.com"])  # Replace with your real email
+    subprocess.run(["git", "config", "user.name", "Aaditya Yadav"])  # Replace as needed
+    subprocess.run(["git", "config", "user.email", "aaditya@example.com"])  # Replace as needed
 
+    # Set branch and remote
+    subprocess.run(["git", "checkout", "-b", "main"])
     subprocess.run(["git", "remote", "add", "origin", repo_url])
-    subprocess.run(["git", "branch", "-M", "main"])  # Ensures branch is named main
 
-    # Stage everything
+    # Add and commit files
     subprocess.run(["git", "add", "."])
-    subprocess.run(["git", "rm", "--cached", ".env"], stderr=subprocess.DEVNULL)  # Remove .env if accidentally staged
+    subprocess.run(["git", "rm", "--cached", ".env"], stderr=subprocess.DEVNULL)
 
-    # Commit and push
-    subprocess.run(["git", "commit", "-m", "Initial commit without secrets"])
-    subprocess.run(["git", "push", "-u", "origin", "main"])
+    # Commit
+    commit_result = subprocess.run(["git", "commit", "-m", "Initial commit"], capture_output=True, text=True)
 
-    print("[✅] Code pushed to GitHub without .env file")
+    if commit_result.returncode != 0:
+        print(f"[❌] Git commit failed:\n{commit_result.stderr}")
+        return
+
+    # Push
+    push_result = subprocess.run(["git", "push", "-u", "origin", "main"], capture_output=True, text=True)
+    if push_result.returncode != 0:
+        print(f"[❌] Git push failed:\n{push_result.stderr}")
+    else:
+        print("[✅] Code pushed to GitHub without .env file")
