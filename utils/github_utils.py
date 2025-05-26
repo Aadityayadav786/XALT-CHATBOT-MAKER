@@ -36,8 +36,11 @@ def commit_and_push_changes(repo_url: str, repo_name="xalt-chatbot-repo"):
         os.makedirs(repo_name)
 
     # Files and folders to copy
-    files_to_include = ["frontend.py", "requirements.txt", ".env", "rag_pipeline.py", "vector_database.py", "README.md", "deploy_streamlit_to_railway.py", "Dockerfile","Procfile","__init__.py",""]
-    folders_to_include = ["vectorstore", "agents", "utils", "txt", "templates" , "static" ]
+    files_to_include = [
+        "frontend.py", "requirements.txt", ".env", "rag_pipeline.py", "vector_database.py",
+        "README.md", "deploy_streamlit_to_railway.py", "Dockerfile", "Procfile", "__init__.py"
+    ]
+    folders_to_include = ["vectorstore", "agents", "utils", "txt", "templates", "static"]
 
     # Copy files
     for f in files_to_include:
@@ -59,15 +62,19 @@ def commit_and_push_changes(repo_url: str, repo_name="xalt-chatbot-repo"):
     with open(".gitignore", "w") as f:
         f.write(".env\n")
 
-    # Initialize Git and commit
+    # Initialize Git and set user identity
     subprocess.run(["git", "init"])
+    subprocess.run(["git", "config", "user.name", "Aaditya Yadav"])
+    subprocess.run(["git", "config", "user.email", "aaditya@example.com"])  # Replace with your real email
+
     subprocess.run(["git", "remote", "add", "origin", repo_url])
-    subprocess.run(["git", "checkout", "-b", "main"])
+    subprocess.run(["git", "branch", "-M", "main"])  # Ensures branch is named main
 
-    # Stage everything except .env
+    # Stage everything
     subprocess.run(["git", "add", "."])
-    subprocess.run(["git", "rm", "--cached", ".env"], stderr=subprocess.DEVNULL)  # In case it was staged
+    subprocess.run(["git", "rm", "--cached", ".env"], stderr=subprocess.DEVNULL)  # Remove .env if accidentally staged
 
+    # Commit and push
     subprocess.run(["git", "commit", "-m", "Initial commit without secrets"])
     subprocess.run(["git", "push", "-u", "origin", "main"])
 
