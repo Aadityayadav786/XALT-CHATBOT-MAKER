@@ -64,8 +64,8 @@ def commit_and_push_changes(repo_url: str, repo_name="xalt-chatbot-repo"):
 
     # Initialize Git and set user identity
     subprocess.run(["git", "init"])
-    subprocess.run(["git", "config", "user.name", "Aaditya Yadav"])
-    subprocess.run(["git", "config", "user.email", "aaditya@example.com"])  # Replace with your real email
+    subprocess.run(["git", "config", "user.name", "Aadityayadav786"])
+    subprocess.run(["git", "config", "user.email", "aady10748@gmail.com"])  # Replace with your real email
 
     subprocess.run(["git", "remote", "add", "origin", repo_url])
     subprocess.run(["git", "branch", "-M", "main"])  # Ensures branch is named main
