@@ -12,9 +12,15 @@ from vector_database import build_or_update_vector_db
 from rag_pipeline import get_rag_response
 from agents.deployment_agent import DeploymentAgent
 from utils.load_env import load_env_file
-from render_deploy import deploy_to_render  # ✅ NEW: Render deployment logic
+from render_deploy import deploy_to_render
 from dotenv import load_dotenv
 load_dotenv()
+
+# ✅ Prevent re-execution if redirected after deployment
+if "redirected_after_deploy" in st.session_state:
+    del st.session_state["redirected_after_deploy"]
+    st.experimental_rerun()
+
 # --- Load Environment Variables ---
 env_vars = load_env_file()
 RENDER_API_KEY = env_vars.get("RENDER_API_KEY")
@@ -103,6 +109,13 @@ if st.session_state.qa_chain_ready:
                 render_url = deploy_to_render(github_repo_url, RENDER_API_KEY)
                 deploy_status.update(label="✅ Deployed to Render!", state="complete")
                 st.success(f"🌐 Live Chatbot URL: [🔗 {render_url}]({render_url})")
+
+                # ✅ Add 3-second delay, then rerun to reset
+                st.markdown("🔁 Redirecting back to builder in 3 seconds...")
+                st.session_state["redirected_after_deploy"] = True
+                time.sleep(3)
+                st.experimental_rerun()
+
             except Exception as e:
                 deploy_status.update(label="❌ Render deployment failed", state="error")
                 st.error(f"Render Error: {e}")
