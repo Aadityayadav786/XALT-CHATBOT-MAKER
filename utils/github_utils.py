@@ -42,6 +42,13 @@ def run_cmd(cmd, msg=None):
 
 
 def commit_and_push_changes(repo_url: str, repo_name="xalt-chatbot-repo"):
+    import os
+    import shutil
+    import subprocess
+    from dotenv import load_dotenv
+    load_dotenv()
+
+    original_cwd = os.getcwd()
     print(f"[📁] Preparing GitHub repo folder: {repo_name}")
 
     # Clean or create target repo directory
@@ -55,32 +62,32 @@ def commit_and_push_changes(repo_url: str, repo_name="xalt-chatbot-repo"):
     ]
     folders_to_include = ["vectorstore", "agents", "utils", "txt", "templates", "static"]
 
-    # Copy files
+    # Copy files into the new repo folder
     for f in files_to_include:
         if os.path.exists(f):
             shutil.copy(f, repo_name)
 
-    # Copy folders
+    # Copy folders recursively into the new repo folder
     for d in folders_to_include:
         if os.path.exists(d):
             dst_path = os.path.join(repo_name, d)
             shutil.copytree(d, dst_path, dirs_exist_ok=True)
 
-    # Move into the repo directory
+    # Change directory to the repo folder for git commands
     os.chdir(repo_name)
 
-    # Write .gitignore to exclude .env
+    # Write a .gitignore to exclude sensitive files like .env
     with open(".gitignore", "w") as f:
         f.write(".env\n")
 
     try:
-        # Initialize Git
+        # Initialize Git repo and set user config
         run_cmd(["git", "init"], "Initialized Git repo")
         run_cmd(["git", "config", "user.name", "Aaditya Yadav"])
         run_cmd(["git", "config", "user.email", "aaditya@example.com"])
         run_cmd(["git", "checkout", "-b", "main"], "Created 'main' branch")
 
-        # Embed token in URL for git push
+        # Embed GitHub token in repo URL for authenticated push
         token = os.getenv("GITHUB_TOKEN")
         if not token:
             raise ValueError("GITHUB_TOKEN not found in environment")
@@ -88,12 +95,12 @@ def commit_and_push_changes(repo_url: str, repo_name="xalt-chatbot-repo"):
 
         run_cmd(["git", "remote", "add", "origin", repo_url_with_token], "Set remote origin with token")
 
-        # Stage and commit
+        # Stage all files, remove .env from git tracking, and commit
         run_cmd(["git", "add", "."], "Staged files for commit")
         subprocess.run(["git", "rm", "--cached", ".env"], stderr=subprocess.DEVNULL)
         run_cmd(["git", "commit", "-m", "Initial commit"], "Committed all files")
 
-        # Push
+        # Push to GitHub
         run_cmd(["git", "push", "-u", "origin", "main"], "Pushed to GitHub")
         print("[🚀] Repo deployed to GitHub successfully")
 
@@ -101,3 +108,7 @@ def commit_and_push_changes(repo_url: str, repo_name="xalt-chatbot-repo"):
         print(f"[❌] Command failed: {e.cmd}")
         print(f"[❌] Error Output:\n{e.stderr}")
         raise
+
+    finally:
+        # Restore original working directory after all git operations
+        os.chdir(original_cwd)

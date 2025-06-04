@@ -56,4 +56,3 @@ if st.button("🗑️ Clear Chat"):
 # ------------------------ Footer ------------------------ #
 st.markdown("---")
 st.markdown('<p style="text-align:center; font-size: 14px;">Powered by <strong>Xalt</strong></p>', unsafe_allow_html=True)
-

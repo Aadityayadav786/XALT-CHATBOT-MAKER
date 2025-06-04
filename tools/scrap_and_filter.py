@@ -8,13 +8,16 @@ import tldextract
 import textwrap
 from cohere import Client
 from vector_database import build_or_update_vector_db
+#from utils.file_merge_utils import merge_txt_files
 
-# Initialize Cohere client
-cohere_client = Client('iMLodRM6PlzNKc02QXXDmZb0gMiPLmrXmHGE6FIm')  # Replace with your real key
+# --- Load Cohere API key securely ---
+COHERE_API_KEY = os.getenv("COHERE_API_KEY", "your-default-api-key")  # Replace fallback with dummy if desired
+cohere_client = Client(COHERE_API_KEY)
 
 visited_links = set()
 
 def is_internal_link(base_url, link):
+    """Check if a link belongs to the same domain as the base URL."""
     parsed = urlparse(link)
     if parsed.scheme not in ("http", "https"):
         return False
@@ -23,11 +26,13 @@ def is_internal_link(base_url, link):
     return base_domain == link_domain
 
 def extract_visible_text(soup):
+    """Extract only visible text from a parsed HTML document."""
     for tag in soup(["script", "style", "noscript"]):
         tag.decompose()
     return soup.get_text(separator="\n", strip=True)
 
 def scrape_page(url):
+    """Download and extract text and internal links from a single web page."""
     try:
         resp = requests.get(url, timeout=10)
         resp.raise_for_status()
@@ -45,7 +50,8 @@ def scrape_page(url):
             links.append(href)
     return text, links
 
-def crawl_website(start_url, max_pages=None):
+def crawl_website(start_url, max_pages=None, output_path="txt/webscraper.txt"):
+    """Recursively crawl internal pages starting from a URL and save text."""
     if not start_url.startswith(("http://", "https://")):
         start_url = "https://" + start_url
 
@@ -64,39 +70,47 @@ def crawl_website(start_url, max_pages=None):
         visited_links.add(url)
 
         for link in links:
-            if link not in visited_links:
+            if link not in visited_links and link not in to_visit:
                 to_visit.append(link)
 
-    os.makedirs("txt", exist_ok=True)
-    raw_path = "txt/data_for_chatbot_xalt.txt"
-    with open(raw_path, "w", encoding="utf-8") as f:
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    with open(output_path, "w", encoding="utf-8") as f:
         f.write("".join(content_dump))
-    print(f"[INFO] Raw scraped content saved to {raw_path}")
-    return raw_path
+
+    print(f"[INFO] Raw scraped content saved to {output_path}")
+    return output_path
 
 def chunk_text(text, max_chunk_size=2000):
+    """Split long text into manageable chunks for AI processing."""
     return textwrap.wrap(text, max_chunk_size, break_long_words=False, break_on_hyphens=False)
 
 def clean_text_with_ai(input_text):
+    """Use Cohere to clean and reformat large text input chunk-by-chunk."""
     chunks = chunk_text(input_text)
     cleaned_chunks = []
 
     for i, chunk in enumerate(chunks):
-        response = cohere_client.chat(
-            model='command-r',
-            message=f"""Please clean and reformat the following text without summarizing or removing important information. 
-Remove exact duplicate lines, extra spaces, or broken formatting, but preserve the full content as much as possible:\n\n{chunk}"""
-        )
-        cleaned_chunks.append(response.text.strip())
-        print(f"[INFO] Chunk {i+1}/{len(chunks)} cleaned.")
+        try:
+            response = cohere_client.chat(
+                model='command-r',
+                message=(
+                    "Please clean and reformat the following text without summarizing or removing important information. "
+                    "Remove exact duplicate lines, extra spaces, or broken formatting, but preserve the full content:\n\n" + chunk
+                )
+            )
+            cleaned_chunks.append(response.text.strip())
+            print(f"[INFO] Chunk {i + 1}/{len(chunks)} cleaned.")
+        except Exception as e:
+            print(f"[ERROR] Failed to clean chunk {i + 1}: {e}")
 
     return "\n\n".join(cleaned_chunks)
 
 def scrape_and_clean_and_vectorize(start_url):
+    """Main pipeline: scrape > clean with AI > merge > vectorize."""
     raw_file = crawl_website(start_url)
-    
-    with open(raw_file, 'r', encoding='utf-8', errors='ignore') as file:
-        raw_text = file.read()
+
+    with open(raw_file, 'r', encoding='utf-8', errors='ignore') as f:
+        raw_text = f.read()
 
     print("[INFO] Cleaning text using Cohere...")
     cleaned_text = clean_text_with_ai(raw_text)
@@ -104,10 +118,19 @@ def scrape_and_clean_and_vectorize(start_url):
     cleaned_path = "txt/cleaned_text.txt"
     with open(cleaned_path, 'w', encoding='utf-8') as f:
         f.write(cleaned_text)
+
     print(f"[✅] Cleaned content saved to {cleaned_path}")
 
-    print("[INFO] Building vector database...")
-    build_or_update_vector_db(txt_path=cleaned_path)
+    merged_path = merge_txt_files(
+        folder_path = "txt",
+        output_filename="datafile.txt",
+        exclude_filenames=["webscraper.txt", "cleaned_text.txt", "merged.txt"]
+        )
+    
+    print(f"[INFO] Merged txt files saved to {merged_path}")
+
+    print("[INFO] Building vector database with merged content...")
+    build_or_update_vector_db(txt_path=merged_path)
 
 if __name__ == "__main__":
     website = input("Enter website URL: ")

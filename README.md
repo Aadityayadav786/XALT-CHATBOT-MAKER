@@ -73,6 +73,8 @@ git push -u origin main
 7. Click on Deploy Web Service
  
 8. Wait for deployment — you will get a live URL once it's complete.
+
+#### Kindly wait for the deployment process it may take more than 10-15 minutes for finding right port.
  
 ## 🌍 Step 7: Embed Chatbot in Your Website
 
