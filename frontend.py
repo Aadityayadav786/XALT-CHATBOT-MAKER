@@ -13,8 +13,8 @@ init_user_session()
 user_id, session_id = get_user_and_session()
 
 # Display session and user IDs
-st.markdown(f"🔑 **Session ID:** `{session_id}`")
-st.markdown(f"🧑 **User ID:** `{user_id}`")
+# st.markdown(f"🔑 **Session ID:** `{session_id}`")
+# st.markdown(f"🧑 **User ID:** `{user_id}`")
 
 # ------------------------ Initialize Chat History ------------------------ #
 if "conversation" not in st.session_state:
